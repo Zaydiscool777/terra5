@@ -1,0 +1,8 @@
+cmake_minimum_required(VERSION 4.2.3)
+project(alphalisp LANGUAGES C)
+add_library(lib	lib.c)
+add_library(eval eval.c)
+add_executable(main main.c)
+add_executable(list_copy_test test.c lib.c)
+enable_testing()
+add_test(NAME list_copy COMMAND list_copy_test)
