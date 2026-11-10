@@ -1,7 +1,6 @@
 #include <stddef.h>
 #include <stdlib.h>
 
-typedef void *atom;
 struct expr;
 
 typedef struct cell {
@@ -9,13 +8,15 @@ typedef struct cell {
 	struct expr *cdr;
 } cell;
 
+typedef char atom[sizeof(cell)]; // can store many things, even 15 chars
+
 struct expr {
 	char tag; // 0 = cell, 1 = atom
 	union {
 		struct cell c;
-		atom *a;
+		atom a;
 	};
-	int ref;
+	int ref; // -1 = root
 };
 
 struct list {
