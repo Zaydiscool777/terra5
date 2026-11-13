@@ -1,8 +1,20 @@
 cmake_minimum_required(VERSION 4.2.3)
 project(alphalisp LANGUAGES C)
+set(CMAKE_C_COMPILER gcc)
+
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(GLIB REQUIRED IMPORTED_TARGET glib-2.0)
+
 add_library(lib	lib.c)
+target_link_libraries(lib PRIVATE PkgConfig::GLIB)
 add_library(eval eval.c)
+#target_link_libraries(eval PRIVATE PkgConfig::GLIB)
+add_library(parse parse.c)
+#target_link_libraries(parse PRIVATE PkgConfig::GLIB)
 add_executable(main main.c)
+target_link_libraries(main lib)
+#target_link_libraries(main PRIVATE PkgConfig::GLIB)
+
 #add_executable(list_copy_test test.c lib.c)
 #enable_testing()
 #add_test(NAME list_copy COMMAND list_copy_test)

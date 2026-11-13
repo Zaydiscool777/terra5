@@ -1,65 +1,136 @@
 #include "main.h"
-#include <string.h>
+#include <glib-2.0/glib.h>
 
-struct expr *expr_copy(struct expr *o) {
+GList *arena = NULL;
+exprp expr_alloc(void) {
+	exprp x = g_malloc(sizeof(struct expr));
+	arena = g_list_prepend(arena, x);
+	return x;
+}
+inline void arena_clear(void) {
+	g_list_free_full(arena, g_free);
+}
+
+exprp expr_copy(exprp o) {
 	if (o == NULL) {
 		return NULL;
 	}
 
-	struct expr *ret = malloc(sizeof(struct expr));
-	ret->ref = -1;
+	exprp ret = expr_alloc();
 	ret->tag = o->tag;
 
-	if (ret->tag) {
-		memcpy(ret->a, o->a, sizeof(atom));
-	} else {
-		ret->c.car = expr_copy(o->c.car);
-		ret->c.cdr = expr_copy(o->c.cdr);
+	switch (o->tag) {
+		case CELL:
+			ret->c.ar = expr_copy(o->c.ar);
+			ret->c.dr = expr_copy(o->c.dr);
+			ret->c.ref = UNDEF;
+			break;
+		case ATOM:
+			memcpy(&ret->a, &o->a, sizeof(atom));
+			break;
 	}
 
 	return ret;
 }
 
-void expr_free(struct expr *r) {
+void expr_free(exprp r) {
 	if (r == NULL) {
 		return;
 	}
 
-	if (!r->tag) {
-		expr_free(r->c.car);
-		expr_free(r->c.cdr);
+	switch (r->tag) {
+		case CELL:
+			expr_free(r->c.ar);
+			expr_free(r->c.dr);
+		default: break;
 	}
+
 	free(r);
 }
 
-struct list *list_copy(struct list* o) {
-	struct list *ret = malloc(sizeof(struct list));
-	ret->head = NULL;
-	ret->then = &ret->head;
-
-	for (struct expr *ato = o->head; ato != *o->then; ato = ato->c.cdr) {
-		struct expr *this = malloc(sizeof(struct expr));
-		this->tag = 0;
-		this->ref = -1;
-		this->c.car = expr_copy(ato->c.car);
-		this->c.cdr = NULL;
-		*ret->then = this;
-		ret->then = &this->c.cdr;
-	}
-
-	return ret;
+inline void nilify(exprp x) {
+	memset(&x->a, 0, sizeof(atom));
 }
 
-void list_free(struct list* r) {
-	expr_free(r->head);
-}
-
-struct expr *make_atom_chars(char *value) {
-	struct expr *e = malloc(sizeof(struct expr));
-	e->tag = 1;
-	strncpy(((char *)e->a), value, (sizeof(atom) - 1));
-	e->ref = 0;
+exprp make_atom_chars(char *x) {
+	exprp e = expr_alloc();
+	e->tag = ATOM;
+	strncpy(e->a, x, (sizeof(atom) - 1));
 	return e;
 }
 
-// make_list_string
+exprp cons(exprp a, exprp d) {
+	exprp ret = expr_alloc();
+	ret->tag = CELL;
+	ret->c.ar = a;
+	ret->c.dr = d;
+	return ret;
+}
+
+bool eq(exprp x, exprp y) {
+	if (x->tag && y->tag) {
+		return memcmp(x->a, y->a, sizeof(atom)) == 0;
+	} else {
+		return false;
+	}
+}
+
+// https://stackoverflow.com/q/1872156
+bool null(struct expr x) {
+	for (int i = 0; i < sizeof(atom); i++) {
+		if (x.a[i] != '0') {
+			return false;
+		}
+	}
+	return true;
+}
+
+exprp make_atom_p(void *x) {
+	exprp ret = expr_alloc();
+	ret->tag = ATOM;
+	memcpy(&ret->a, x, sizeof(atom));
+	return ret;
+}
+
+exprp make_atom_i(int x) {
+	exprp ret = expr_alloc();
+	ret->tag = ATOM;
+	memcpy(&ret->a, &x, sizeof(int));
+	return ret;
+}
+
+exprp make_list_str1(char *x) {
+	exprp at = expr_alloc();
+	nilify(at);
+	exprp ret = at;
+	if (strlen(x) > 0) {
+		char s[2] = {x[0], '\0'};
+		at->c.ar = make_atom_chars(s);
+		nilify(at->c.dr);
+	}
+	for (int i = 1; i < strlen(x); i++) {
+		at->c.dr = expr_alloc();
+		at = at->c.dr;
+		char s[2] = {x[i], '\0'};
+		at->c.ar = make_atom_chars(s);
+		nilify(at->c.dr);
+	}
+	return ret;
+}
+
+exprp make_list_strf(char *x) {
+	exprp at = expr_alloc();
+	nilify(at);
+	exprp ret = at;
+	if (strlen(x) > 0) {
+		at->c.ar = make_atom_chars(x);
+		nilify(at->c.dr);
+	}
+	for (int i = sizeof(atom) - 1; i < strlen(x); i += sizeof(atom) - 1) {
+		at->c.dr = expr_alloc();
+		at = at->c.dr;
+		at->c.ar = make_atom_chars(x + i);
+		nilify(at->c.dr);
+	}
+	return ret;
+}

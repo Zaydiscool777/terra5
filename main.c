@@ -1,7 +1,10 @@
 #include <stdio.h>
-
-char input[] = "hello";
+#include "main.h"
 
 int main(void) {
-	puts(input);
+	char *s;
+	size_t n;
+	getline(&s, &n, stdin);
+	exprp x = make_list_strf(s);
+	return 0;
 }
