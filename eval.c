@@ -47,7 +47,7 @@ exprp eval(exprp e, exprp a) {
 			return cons(eval(e->c.dr->c.ar, a), eval(e->c.dr->c.dr->c.ar, a));
 		} else if (strncmp(e->c.ar->a, "cond", 5) == 0) {
 			exprp evcon(exprp c) { // ((a . b) (c . d) ...)
-				if (eval(c->c.ar->c.ar, a)->a) {
+				if (!null(*eval(c->c.ar->c.ar, a))) {
 					return eval(c->c.ar->c.dr, a);
 				} else {
 					return evcon(c->c.dr);

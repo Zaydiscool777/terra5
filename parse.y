@@ -49,8 +49,7 @@ list:
 %%
 
 static exprp make_nil(void) {
-	exprp result = expr_alloc();
-	result->tag = ATOM;
+	exprp result = expr_alloc(ATOM);
 	memset(result->a, 0, sizeof(result->a));
 	return result;
 }

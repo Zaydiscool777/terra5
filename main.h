@@ -40,7 +40,7 @@ extern struct expr nil;
 
 // struct unit {} unit;
 
-exprp expr_alloc(void);
+exprp expr_alloc(enum tag_t tag);
 exprp expr_copy(exprp o);
 void expr_free(exprp r);
 void nilify(exprp x);
