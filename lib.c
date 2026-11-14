@@ -1,12 +1,17 @@
 #include "main.h"
+#include <stdio.h>
 #include <glib-2.0/glib.h>
 
+struct expr nil = {ATOM, 0};
+
 GList *arena = NULL;
-exprp expr_alloc(void) {
+exprp expr_alloc(enum tag_t tag) {
 	exprp x = g_malloc(sizeof(struct expr));
 	arena = g_list_prepend(arena, x);
+	x->tag = tag;
 	return x;
 }
+
 inline void arena_clear(void) {
 	g_list_free_full(arena, g_free);
 }
@@ -16,8 +21,7 @@ exprp expr_copy(exprp o) {
 		return NULL;
 	}
 
-	exprp ret = expr_alloc();
-	ret->tag = o->tag;
+	exprp ret = expr_alloc(o->tag);
 
 	switch (o->tag) {
 		case CELL:
@@ -53,15 +57,13 @@ inline void nilify(exprp x) {
 }
 
 exprp make_atom_chars(char *x) {
-	exprp e = expr_alloc();
-	e->tag = ATOM;
+	exprp e = expr_alloc(ATOM);
 	strncpy(e->a, x, (sizeof(atom) - 1));
 	return e;
 }
 
 exprp cons(exprp a, exprp d) {
-	exprp ret = expr_alloc();
-	ret->tag = CELL;
+	exprp ret = expr_alloc(CELL);
 	ret->c.ar = a;
 	ret->c.dr = d;
 	return ret;
@@ -78,7 +80,7 @@ bool eq(exprp x, exprp y) {
 // https://stackoverflow.com/q/1872156
 bool null(struct expr x) {
 	for (int i = 0; i < sizeof(atom); i++) {
-		if (x.a[i] != '0') {
+		if (x.a[i] != '\0') {
 			return false;
 		}
 	}
@@ -86,21 +88,19 @@ bool null(struct expr x) {
 }
 
 exprp make_atom_p(void *x) {
-	exprp ret = expr_alloc();
-	ret->tag = ATOM;
+	exprp ret = expr_alloc(ATOM);
 	memcpy(&ret->a, x, sizeof(atom));
 	return ret;
 }
 
 exprp make_atom_i(int x) {
-	exprp ret = expr_alloc();
-	ret->tag = ATOM;
+	exprp ret = expr_alloc(ATOM);
 	memcpy(&ret->a, &x, sizeof(int));
 	return ret;
 }
 
 exprp make_list_str1(char *x) {
-	exprp at = expr_alloc();
+	exprp at = expr_alloc(CELL);
 	nilify(at);
 	exprp ret = at;
 	if (strlen(x) > 0) {
@@ -109,7 +109,7 @@ exprp make_list_str1(char *x) {
 		nilify(at->c.dr);
 	}
 	for (int i = 1; i < strlen(x); i++) {
-		at->c.dr = expr_alloc();
+		at->c.dr = expr_alloc(CELL);
 		at = at->c.dr;
 		char s[2] = {x[i], '\0'};
 		at->c.ar = make_atom_chars(s);
@@ -119,7 +119,7 @@ exprp make_list_str1(char *x) {
 }
 
 exprp make_list_strf(char *x) {
-	exprp at = expr_alloc();
+	exprp at = expr_alloc(CELL);
 	nilify(at);
 	exprp ret = at;
 	if (strlen(x) > 0) {
@@ -127,10 +127,43 @@ exprp make_list_strf(char *x) {
 		nilify(at->c.dr);
 	}
 	for (int i = sizeof(atom) - 1; i < strlen(x); i += sizeof(atom) - 1) {
-		at->c.dr = expr_alloc();
+		at->c.dr = expr_alloc(CELL);
 		at = at->c.dr;
 		at->c.ar = make_atom_chars(x + i);
 		nilify(at->c.dr);
 	}
 	return ret;
+}
+
+void expr_show(struct expr x, bool cont) {
+	switch (x.tag) {
+		case CELL:
+		if (!cont) {
+			putc('(', stdout);
+		}
+		expr_show(*x.c.ar, false);
+		switch (x.c.dr->tag) {
+			case CELL:
+			putc(' ', stdout);
+			expr_show(*x.c.dr, true);
+			break;
+			case ATOM:
+			if (!null(*x.c.dr)) {
+				printf(" . ");
+				expr_show(*x.c.dr, false);
+			}
+			break;
+		}
+		if (!cont) {
+			putc(')', stdout);
+		}
+		break;
+		case ATOM:
+		if (null(x)) {
+			printf("()");
+		} else {
+			printf("%s", x.a);
+		}
+		break;
+	}
 }

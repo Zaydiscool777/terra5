@@ -1,7 +1,5 @@
 #include "main.h"
 
-struct expr nil = {ATOM, 0};
-
 exprp append(exprp x, exprp y) {
 	if (null(*x)) {
 		return y;
@@ -12,9 +10,11 @@ exprp append(exprp x, exprp y) {
 }
 
 exprp pair(exprp x, exprp y) {
-	if (null(*x) && null(*y)) {
+	if (null(*x)) {
 		return &nil;
-	} else if (!x->tag && !y->tag) {
+	} else if (x->tag) {
+		return cons(cons(x, y), &nil);
+	} else {
 		return cons(cons(x->c.ar, y->c.ar), pair(x->c.dr, y->c.dr));
 	}
 }
@@ -58,11 +58,11 @@ exprp eval(exprp e, exprp a) {
 			return eval(cons(assoc(e->c.ar, a), e->c.dr), a);
 				// mutates car e to assoc (car e) a
 		}
-	} else if (strncmp(e->c.ar->c.ar->a, "label", 6)) {
+	} else if (strncmp(e->c.ar->c.ar->a, "label", 6) == 0) {
 		return eval(cons(e->c.ar->c.dr->c.dr->c.ar, e->c.dr),
 			// mutates car e to caddar e
 			cons(cons(e->c.ar->c.dr->c.ar, e->c.ar), a));
-	} else if (strncmp(e->c.ar->c.ar->a, "lambda", 7)) {
+	} else if (strncmp(e->c.ar->c.ar->a, "lambda", 7) == 0) {
 		exprp evlis(exprp m) {
 			if (null(*m)) {
 				return &nil;

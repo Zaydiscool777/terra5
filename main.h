@@ -36,6 +36,8 @@ struct expr {
 	};
 };
 
+extern struct expr nil;
+
 // struct unit {} unit;
 
 exprp expr_alloc(void);
@@ -50,5 +52,9 @@ exprp make_atom_p(void *x);
 exprp make_atom_i(int x);
 exprp make_list_str1(char *x);
 exprp make_list_strf(char *x);
+void expr_show(struct expr x, bool cont);
+
+extern exprp parse_result;
+int yyparse(void);
 
 #endif
